@@ -23,5 +23,26 @@ replication streams, one history, and it works on the laptop.
 An id is the entity's stable identity, never a human-facing name: a rename must
 be a row somewhere, not a file move and a severed history.
 
+## From a chosen name, to a place
+
+```go
+slug := namespace.Sanitize(org)                        // one injective slug
+ns, err := namespace.OrgProject(org, project)          // org/<slug>[/<project>]
+key, err := namespace.Key(ns, "tracker")               // orgs/<slug>/tracker.db
+path, err := namespace.Path(dataDir, ns, "tracker")    // <dataDir>/orgs/<slug>/tracker.db
+```
+
+`Sanitize` reduces a name a person chose — an IAM org, a project — to a
+`[a-z0-9-]` slug and is **injective**: names carrying an invisible rune are
+refused outright (nothing downstream can be trusted not to trim them), and every
+other fold is disambiguated by a hash of the raw bytes, so `Acme` and `acme` stay
+two orgs and therefore two files. `OrgProject` is the door those names walk
+through to become a namespace.
+
+`Key` renders a namespace as the place one subsystem's file for it lives, and
+`Path` resolves that against a data directory. One rendering, two consumers: the
+local file and the object key durability ships it to are the same string by
+construction, so they cannot drift apart.
+
 `hanzoai/orm/db.Namespaces` resolves a namespace to an open handle — materialise,
 open, cache, evict. That is the only other thing with an opinion about namespaces.
